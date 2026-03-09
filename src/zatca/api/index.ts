@@ -104,6 +104,7 @@ class API {
                 },
                 { headers: { ...auth_headers, ...headers } }
             );
+            console.log("response", response);
 
             if (response.status != 200) throw new Error("Error in compliance check.");
             return response.data;
