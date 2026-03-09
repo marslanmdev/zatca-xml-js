@@ -154,7 +154,7 @@ class API {
                 { headers: { ...auth_headers, ...headers } }
             );
 
-            if (response.status != 200) throw new Error("Error in reporting invoice.");
+            if (response.status != 200 || response.status != 202) throw new Error("Error in reporting invoice.");
             return response.data;
         }
 
