@@ -70,47 +70,51 @@ const template = /* XML */`
     </cac:Party>
   </cac:AccountingSupplierParty>
    SET_BUYER_INFO
+  <cac:Delivery>
+        <cbc:ActualDeliveryDate>SET_SUPPLY_DATE</cbc:ActualDeliveryDate>
+        <cbc:LatestDeliveryDate>SET_SUPPLY_END_DATE</cbc:LatestDeliveryDate>
+    </cac:Delivery>
 </Invoice>
 `;
 
 // 11.2.5 Payment means type code
 export enum ZATCAPaymentMethods {
-    CASH = "10",
-    CREDIT = "30",
-    BANK_ACCOUNT = "42",
-    BANK_CARD = "48"
+  CASH = "10",
+  CREDIT = "30",
+  BANK_ACCOUNT = "42",
+  BANK_CARD = "48"
 }
 
 export enum ZATCAInvoiceTypes {
-    INVOICE = "388",
-    DEBIT_NOTE = "383",
-    CREDIT_NOTE = "381"
+  INVOICE = "388",
+  DEBIT_NOTE = "383",
+  CREDIT_NOTE = "381"
 }
 
 export interface ZATCAStandardInvoiceLineItemDiscount {
-    amount: number,
-    reason: string
+  amount: number,
+  reason: string
 }
 
 export interface ZATCAStandardInvoiceLineItemTax {
-    percent_amount: number
+  percent_amount: number
 }
 
 export interface ZATCAStandardInvoiceLineItem {
-    id: string,
-    name: string,
-    quantity: number,
-    tax_exclusive_price: number,
-    other_taxes?: ZATCAStandardInvoiceLineItemTax[],
-    discounts?: ZATCAStandardInvoiceLineItemDiscount[]
-    VAT_percent: number,
+  id: string,
+  name: string,
+  quantity: number,
+  tax_exclusive_price: number,
+  other_taxes?: ZATCAStandardInvoiceLineItemTax[],
+  discounts?: ZATCAStandardInvoiceLineItemDiscount[]
+  VAT_percent: number,
 }
 
 export interface ZATCAStandardInvoicCancelation {
-    canceled_invoice_number: number,
-    payment_method: ZATCAPaymentMethods,
-    cancelation_type: ZATCAInvoiceTypes,
-    reason: string
+  canceled_invoice_number: number,
+  payment_method: ZATCAPaymentMethods,
+  cancelation_type: ZATCAInvoiceTypes,
+  reason: string
 }
 
 // export interface ZATCAStandardInvoiceProps {
@@ -125,35 +129,38 @@ export interface ZATCAStandardInvoicCancelation {
 // }
 
 interface ZATCABuyerInfo {
-    name: string;
-    VAT_number?: string;
-    street: string;
-    building: string;
-    city: string;
-    postal_code: string;
+  name: string;
+  VAT_number?: string;
+  street: string;
+  building: string;
+  city: string;
+  postal_code: string;
 }
 
 export interface ZATCAStandardInvoiceProps {
-    egs_info: EGSUnitInfo,
-    invoice_counter_number: number,
-    invoice_serial_number: string,
-    issue_date: string,
-    issue_time: string,
-    previous_invoice_hash: string,
-    line_items?: ZATCAStandardInvoiceLineItem[],
-    cancelation?: ZATCAStandardInvoicCancelation,
-    buyer?: ZATCABuyerInfo
+  egs_info: EGSUnitInfo,
+  invoice_counter_number: number,
+  invoice_serial_number: string,
+  issue_date: string,
+  issue_time: string,
+  previous_invoice_hash: string,
+  line_items?: ZATCAStandardInvoiceLineItem[],
+  cancelation?: ZATCAStandardInvoicCancelation,
+  supply_date: string,
+  supply_end_date?: string,
+
+  buyer?: ZATCABuyerInfo
 }
 export default function populate(props: ZATCAStandardInvoiceProps): string {
-    let populated_template = template;
+  let populated_template = template;
 
-    // Buyer info: agar props me buyer info hai to insert karen, warna empty chhod dein
-    populated_template = populated_template.replace(
-        "SET_BUYER_INFO",
-        `<cac:AccountingCustomerParty>
+  // Buyer info: agar props me buyer info hai to insert karen, warna empty chhod dein
+  populated_template = populated_template.replace(
+    "SET_BUYER_INFO",
+    `<cac:AccountingCustomerParty>
        <cac:Party>
          <cac:PartyIdentification>
-           <cbc:ID schemeID="VAT">${props.buyer?.VAT_number ?? ""}</cbc:ID>
+           <cbc:ID schemeID="CRN">${props.buyer?.VAT_number ?? ""}</cbc:ID>
          </cac:PartyIdentification>
          <cac:PostalAddress>
            <cbc:StreetName>${props.buyer?.street ?? ""}</cbc:StreetName>
@@ -169,38 +176,47 @@ export default function populate(props: ZATCAStandardInvoiceProps): string {
          </cac:PartyLegalEntity>
        </cac:Party>
      </cac:AccountingCustomerParty>`
-    );
+  );
 
-    // Invoice type set karen
-    populated_template = populated_template.replace(
-        "SET_INVOICE_TYPE",
-        props.cancelation ? props.cancelation.cancelation_type : ZATCAInvoiceTypes.INVOICE
-    );
+  // Invoice type set karen
+  populated_template = populated_template.replace(
+    "SET_INVOICE_TYPE",
+    props.cancelation ? props.cancelation.cancelation_type : ZATCAInvoiceTypes.INVOICE
+  );
 
-    // Billing reference: agar invoice cancel hai to reference add karen
-    populated_template = populated_template.replace(
-        "SET_BILLING_REFERENCE",
-        props.cancelation ? defaultBillingReference(props.cancelation.canceled_invoice_number) : ""
-    );
+  // Billing reference: agar invoice cancel hai to reference add karen
+  populated_template = populated_template.replace(
+    "SET_BILLING_REFERENCE",
+    props.cancelation ? defaultBillingReference(props.cancelation.canceled_invoice_number) : ""
+  );
 
-    // Baaki placeholders
-    populated_template = populated_template.replace("SET_INVOICE_SERIAL_NUMBER", props.invoice_serial_number);
-    populated_template = populated_template.replace("SET_TERMINAL_UUID", props.egs_info.uuid);
-    populated_template = populated_template.replace("SET_ISSUE_DATE", props.issue_date);
-    populated_template = populated_template.replace("SET_ISSUE_TIME", props.issue_time);
-    populated_template = populated_template.replace("SET_PREVIOUS_INVOICE_HASH", props.previous_invoice_hash);
-    populated_template = populated_template.replace("SET_INVOICE_COUNTER_NUMBER", props.invoice_counter_number.toString());
-    populated_template = populated_template.replace("SET_COMMERCIAL_REGISTRATION_NUMBER", props.egs_info.CRN_number);
+  // Baaki placeholders
+  populated_template = populated_template.replace("SET_INVOICE_SERIAL_NUMBER", props.invoice_serial_number);
+  populated_template = populated_template.replace("SET_TERMINAL_UUID", props.egs_info.uuid);
+  populated_template = populated_template.replace("SET_ISSUE_DATE", props.issue_date);
+  populated_template = populated_template.replace("SET_ISSUE_TIME", props.issue_time);
+  populated_template = populated_template.replace("SET_PREVIOUS_INVOICE_HASH", props.previous_invoice_hash);
+  populated_template = populated_template.replace("SET_INVOICE_COUNTER_NUMBER", props.invoice_counter_number.toString());
+  populated_template = populated_template.replace("SET_COMMERCIAL_REGISTRATION_NUMBER", props.egs_info.CRN_number);
 
-    populated_template = populated_template.replace("SET_STREET_NAME", props.egs_info.location.street);
-    populated_template = populated_template.replace("SET_BUILDING_NUMBER", props.egs_info.location.building);
-    populated_template = populated_template.replace("SET_PLOT_IDENTIFICATION", props.egs_info.location.plot_identification);
-    populated_template = populated_template.replace("SET_CITY_SUBDIVISION", props.egs_info.location.city_subdivision);
-    populated_template = populated_template.replace("SET_CITY", props.egs_info.location.city);
-    populated_template = populated_template.replace("SET_POSTAL_NUMBER", props.egs_info.location.postal_zone);
+  populated_template = populated_template.replace("SET_STREET_NAME", props.egs_info.location.street);
+  populated_template = populated_template.replace("SET_BUILDING_NUMBER", props.egs_info.location.building);
+  populated_template = populated_template.replace("SET_PLOT_IDENTIFICATION", props.egs_info.location.plot_identification);
+  populated_template = populated_template.replace("SET_CITY_SUBDIVISION", props.egs_info.location.city_subdivision);
+  populated_template = populated_template.replace("SET_CITY", props.egs_info.location.city);
+  populated_template = populated_template.replace("SET_POSTAL_NUMBER", props.egs_info.location.postal_zone);
 
-    populated_template = populated_template.replace("SET_VAT_NUMBER", props.egs_info.VAT_number);
-    populated_template = populated_template.replace("SET_VAT_NAME", props.egs_info.VAT_name);
+  populated_template = populated_template.replace("SET_VAT_NUMBER", props.egs_info.VAT_number);
+  populated_template = populated_template.replace("SET_VAT_NAME", props.egs_info.VAT_name);
 
-    return populated_template;
+  populated_template = populated_template.replace(
+    "SET_SUPPLY_DATE",
+    props.supply_date
+  );
+
+  populated_template = populated_template.replace(
+    "SET_SUPPLY_END_DATE",
+    props.supply_end_date ?? props.supply_date
+  );
+  return populated_template;
 }
