@@ -94,6 +94,7 @@ class API {
             const headers = {
                 "Accept-Version": settings.API_VERSION,
                 "Accept-Language": "en",
+                "otp": 123345,
             };
 
             const response = await axios.post(`${settings.SANDBOX_BASEURL}/compliance`,
